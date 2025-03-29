@@ -1,22 +1,34 @@
 // Import database connection
-const pool = require("../db"); 
+const pool = require("../db");
 
 const Sentiment = require("sentiment");
 const sentiment = new Sentiment();
-const config = require("../config"); 
+const config = require("../config");
 
 // Stopwords
 const STOPWORDS = new Set([
-  "the", "is", "and", "or", "a", "an", "to", "in", "of", "for", "on", "with", "as"
+  "the",
+  "is",
+  "and",
+  "or",
+  "a",
+  "an",
+  "to",
+  "in",
+  "of",
+  "for",
+  "on",
+  "with",
+  "as",
 ]);
 
 // Take review's text as input and clean it
 const cleanText = (text) => {
   return text
     .toLowerCase()
-    .replace(/[^a-zA-Z ]/gi, '') // Remove special characters
+    .replace(/[^a-zA-Z ]/gi, "") // Remove special characters
     .split(" ")
-    .filter(word => !STOPWORDS.has(word)) // Remove stopwords
+    .filter((word) => !STOPWORDS.has(word)) // Remove stopwords
     .join(" ");
 };
 
@@ -38,7 +50,6 @@ const addReview = async (req, res) => {
     res.status(500).json({ error: "Database error" });
   }
 };
-
 
 // Function to calculate sentiment per review and gives back a sentiment analysis
 const calculateSentiment = (reviews) => {
@@ -70,20 +81,23 @@ const calculateSentiment = (reviews) => {
 
     analysis.words.forEach((word) => {
       wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-      wordSentimentScores[word] = (wordSentimentScores[word] || 0) + analysis.score;
+      wordSentimentScores[word] =
+        (wordSentimentScores[word] || 0) + analysis.score;
     });
   });
 
   let sentimentTrends = {};
   for (let rating in sentimentByRating) {
-    sentimentTrends[rating] = sentimentByRating[rating].totalScore / sentimentByRating[rating].count;
+    sentimentTrends[rating] =
+      sentimentByRating[rating].totalScore / sentimentByRating[rating].count;
   }
 
   let sortedWords = Object.keys(wordSentimentScores)
     .map((word) => ({
       word,
-      score: wordFrequency[word] ? wordSentimentScores[word] / wordFrequency[word] : 0,
-
+      score: wordFrequency[word]
+        ? wordSentimentScores[word] / wordFrequency[word]
+        : 0,
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -101,29 +115,28 @@ const calculateSentiment = (reviews) => {
 
 // Function to analyze reviews (placeholder)
 const getAnalysis = async (req, res) => {
-
   console.log("Fetching reviews from database..."); // DEBUGGING
 
-  try{
+  try {
     const result = await pool.query("SELECT text, rating FROM reviews");
-    
+
     console.log("Query executed!");
-    
+
     const reviews = result.rows;
 
     console.log("Fetched reviews:", reviews);
-    
+
     console.log("Fetched reviews:", reviews.length); // DEBUGGING
 
-    if(reviews.length === 0){
-      return res.json({message: "There are not reviews for analysis"})
+    if (reviews.length === 0) {
+      return res.json({ message: "There are not reviews for analysis" });
     }
 
     let analysisResult = calculateSentiment(reviews);
 
     res.json(analysisResult);
-  }catch (error){
-    res.status(500).json({error: "Error occurred during sentiment analysis"})
+  } catch (error) {
+    res.status(500).json({ error: "Error occurred during sentiment analysis" });
   }
 };
 
