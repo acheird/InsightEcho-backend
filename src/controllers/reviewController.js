@@ -113,20 +113,20 @@ const calculateSentiment = (reviews) => {
   };
 };
 
-// Function to analyze reviews (placeholder)
+// Function to analyze reviews
 const getAnalysis = async (req, res) => {
-  console.log("Fetching reviews from database..."); // DEBUGGING
+  //console.log("Fetching reviews from database..."); // DEBUGGING
 
   try {
     const result = await pool.query("SELECT text, rating FROM reviews");
 
-    console.log("Query executed!");
+    //console.log("Query executed!");
 
     const reviews = result.rows;
 
-    console.log("Fetched reviews:", reviews);
+    //console.log("Fetched reviews:", reviews);
 
-    console.log("Fetched reviews:", reviews.length); // DEBUGGING
+    //console.log("Fetched reviews:", reviews.length); // DEBUGGING
 
     if (reviews.length === 0) {
       return res.json({ message: "There are not reviews for analysis" });
