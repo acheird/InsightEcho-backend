@@ -9,4 +9,16 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
+console.log("DB_USER:", process.env.DB_USER);
+console.log("DB_PASS:", process.env.DB_PASS ? "****" : "NOT SET");
+
+
+// Test the database connection
+pool.connect()
+  .then(() => console.log("✅ Connected to the database"))
+  .catch((err) => {
+    console.error("❌ Database connection error:", err);
+    process.exit(1); // Exit the app if DB connection fails
+  });
+  
 module.exports = pool;
