@@ -4,6 +4,12 @@ require("dotenv").config();
 
 const app = express();
 
+const corsOptions = {
+  origin: "http://localhost:5173",
+  methods: "GET,POST",
+  allowedHeaders: "Content-Type",
+};
+
 app.use(cors());
 app.use(express.json());
 
