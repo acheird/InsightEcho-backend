@@ -5,6 +5,8 @@ const Sentiment = require("sentiment");
 const sentiment = new Sentiment();
 const config = require("../config");
 
+const { calculateSentiment } = require("../utils/calculateSentiment");
+
 // Stopwords
 const STOPWORDS = new Set([
   "the",
@@ -49,68 +51,6 @@ const addReview = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Database error" });
   }
-};
-
-// Function to calculate sentiment per review and gives back a sentiment analysis
-const calculateSentiment = (reviews) => {
-  let totalSentiment = 0;
-  let sentimentByRating = {};
-  let wordFrequency = {};
-  let wordSentimentScores = {};
-
-  reviews.forEach((review) => {
-    let { text, rating } = review;
-
-    // Checks if rating is is range (1-5)
-    if (rating < 1 || rating > 5) {
-      console.warn(`Skipping review with invalid rating: ${rating}`);
-      return;
-    }
-
-    // Clean review's text
-    text = cleanText(text);
-
-    const analysis = sentiment.analyze(text);
-    totalSentiment += analysis.score;
-
-    if (!sentimentByRating[rating]) {
-      sentimentByRating[rating] = { totalScore: 0, count: 0 };
-    }
-    sentimentByRating[rating].totalScore += analysis.score;
-    sentimentByRating[rating].count++;
-
-    analysis.words.forEach((word) => {
-      wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-      wordSentimentScores[word] =
-        (wordSentimentScores[word] || 0) + analysis.score;
-    });
-  });
-
-  let sentimentTrends = {};
-  for (let rating in sentimentByRating) {
-    sentimentTrends[rating] =
-      sentimentByRating[rating].totalScore / sentimentByRating[rating].count;
-  }
-
-  let sortedWords = Object.keys(wordSentimentScores)
-    .map((word) => ({
-      word,
-      score: wordFrequency[word]
-        ? wordSentimentScores[word] / wordFrequency[word]
-        : 0,
-    }))
-    .sort((a, b) => b.score - a.score);
-
-  let topPositiveWords = sortedWords.filter((w) => w.score > 0).slice(0, 10);
-  let topNegativeWords = sortedWords.filter((w) => w.score < 0).slice(0, 10);
-
-  return {
-    totalReviews: reviews.length,
-    averageSentiment: totalSentiment / reviews.length || 0,
-    sentimentByRating: sentimentTrends,
-    topPositiveWords,
-    topNegativeWords,
-  };
 };
 
 // Function to analyze reviews
