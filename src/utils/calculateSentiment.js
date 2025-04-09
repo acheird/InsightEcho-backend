@@ -21,6 +21,27 @@ const calculateSentiment = (reviews) => {
   let phraseSentiment = {};
   let phraseFrequency = {};
 
+  // Sentiment Buckets
+  const sentimentBuckets = {
+    stronglyPositive: 0,
+    mildlyPositive: 0,
+    neutral: 0,
+    mildlyNegative: 0,
+    stronglyNegative: 0,
+  };
+
+  // Theme-based sentiment
+  const themes = {
+    price: ["price", "expensive", "cheap", "cost", "pricing"],
+    service: ["support", "customer", "service", "staff", "help"],
+    delivery: ["delivery", "shipping", "arrived", "late", "on time"],
+  };
+
+  const themeSentiment = {};
+  Object.keys(themes).forEach((theme) => {
+    themeSentiment[theme] = { total: 0, count: 0 };
+  });
+
   reviews.forEach((review) => {
     let { text, rating } = review;
 
@@ -32,6 +53,23 @@ const calculateSentiment = (reviews) => {
     const cleaned = cleanText(text);
     const analysis = sentiment.analyze(cleaned);
     totalSentiment += analysis.score;
+
+    // Buckets
+    if (analysis.score > 3) sentimentBuckets.stronglyPositive++;
+    else if (analysis.score > 1) sentimentBuckets.mildlyPositive++;
+    else if (analysis.score >= -1) sentimentBuckets.neutral++;
+    else if (analysis.score > -3) sentimentBuckets.mildlyNegative++;
+    else sentimentBuckets.stronglyNegative++;
+
+    // Theme scoring
+    const lowerText = cleaned.toLowerCase();
+    Object.entries(themes).forEach(([theme, keywords]) => {
+      const matched = keywords.some((k) => lowerText.includes(k));
+      if (matched) {
+        themeSentiment[theme].total += analysis.score;
+        themeSentiment[theme].count++;
+      }
+    });
 
     if (!sentimentByRating[rating]) {
       sentimentByRating[rating] = { totalScore: 0, count: 0 };
@@ -81,6 +119,22 @@ const calculateSentiment = (reviews) => {
     }))
     .sort((a, b) => b.score - a.score);
 
+  const frequentPositivePhrases = sortedPhrases
+    .filter((p) => p.score > 1)
+    .sort((a, b) => phraseFrequency[b.phrase] - phraseFrequency[a.phrase])
+    .slice(0, 10);
+
+  const frequentNegativePhrases = sortedPhrases
+    .filter((p) => p.score < -1)
+    .sort((a, b) => phraseFrequency[b.phrase] - phraseFrequency[a.phrase])
+    .slice(0, 10);
+
+  // Finalize average for themes
+  Object.keys(themeSentiment).forEach((theme) => {
+    const data = themeSentiment[theme];
+    data.average = data.count > 0 ? data.total / data.count : 0;
+  });
+
   return {
     totalReviews: reviews.length,
     averageSentiment: totalSentiment / reviews.length || 0,
@@ -89,6 +143,10 @@ const calculateSentiment = (reviews) => {
     topNegativeWords: sortedWords.filter((w) => w.score < 0).slice(0, 10),
     topPositivePhrases: sortedPhrases.filter((p) => p.score > 0).slice(0, 10),
     topNegativePhrases: sortedPhrases.filter((p) => p.score < 0).slice(0, 10),
+    frequentPositivePhrases,
+    frequentNegativePhrases,
+    sentimentBuckets,
+    themeSentiment,
     wordFrequency,
     wordSentimentScores,
     phraseFrequency,
