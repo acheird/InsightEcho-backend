@@ -4,13 +4,15 @@ require("dotenv").config();
 
 const app = express();
 
-const corsOptions = {
-  origin: "http://localhost:5173",
-  methods: "GET,POST",
-  allowedHeaders: "Content-Type",
-};
+// const corsOptions = {
+//   origin: "http://localhost:5173",
+//   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+//   allowedHeaders: ["Content-Type"],
+// };
 
-app.use(cors());
+// app.use(cors(corsOptions));
+
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
 // Import routes
@@ -18,17 +20,6 @@ const reviewRoutes = require("./routes/reviews");
 
 // Connect routes
 app.use("/api", reviewRoutes);
-
-app.get("/ping", (req, res) => {
-  res.send("Server is running!");
-});
-
-// Debugging: Log available routes
-app._router.stack.forEach((r) => {
-  if (r.route && r.route.path) {
-    console.log(`Route found: ${r.route.path}`);
-  }
-});
 
 // Start Server
 const PORT = process.env.PORT || 5000;

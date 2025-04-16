@@ -15,7 +15,7 @@ console.log("DB_PASS:", process.env.DB_PASS ? "****" : "NOT SET");
 // Test the database connection
 pool
   .connect()
-  .then(() => console.log("✅ Connected to the database"))
+  .then(() => console.log(" Connected to the database"))
   .catch((err) => {
     console.error(" Database connection error:", err);
     process.exit(1);
