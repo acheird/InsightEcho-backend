@@ -1,22 +1,6 @@
 const pool = require("../db");
 const { calculateSentiment } = require("../utils/calculateSentiment");
 
-const STOPWORDS = new Set([
-  "the",
-  "is",
-  "and",
-  "or",
-  "a",
-  "an",
-  "to",
-  "in",
-  "of",
-  "for",
-  "on",
-  "with",
-  "as",
-]);
-
 const addReview = async (req, res) => {
   const { text, rating } = req.body;
 
@@ -36,14 +20,14 @@ const addReview = async (req, res) => {
 };
 
 const getAnalysis = async (req, res) => {
-  //console.log("Fetching reviews from database..."); // DEBUGGING
+  //console.log("Fetching reviews from database...");
   try {
     const result = await pool.query("SELECT text, rating FROM reviews");
 
     //console.log("Query executed!");
     const reviews = result.rows;
     //console.log("Fetched reviews:", reviews);
-    //console.log("Fetched reviews:", reviews.length); // DEBUGGING
+    //console.log("Fetched reviews:", reviews.length);
 
     if (reviews.length === 0) {
       return res.json({ message: "There are not reviews for analysis" });
