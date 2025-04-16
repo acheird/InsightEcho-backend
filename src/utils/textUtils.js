@@ -17,9 +17,9 @@ const STOPWORDS = new Set([
 const cleanText = (text) => {
   return text
     .toLowerCase()
-    .replace(/[^a-zA-Z ]/gi, "") // Remove special characters
+    .replace(/[^a-zA-Z ]/gi, "")
     .split(" ")
-    .filter((word) => !STOPWORDS.has(word)) // Remove stopwords
+    .filter((word) => !STOPWORDS.has(word))
     .join(" ");
 };
 
