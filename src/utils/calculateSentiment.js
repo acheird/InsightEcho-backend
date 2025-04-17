@@ -6,22 +6,13 @@ const natural = require("natural");
 const tokenizer = new natural.WordTokenizer();
 
 function getNGrams(words, n) {
-  const grams = [];
-  for (let i = 0; i <= words.length - n; i++) {
-    grams.push(words.slice(i, i + n).join(" "));
-  }
-  return grams;
+  return Array.from({ length: words.length - n + 1 }, (_, i) =>
+    words.slice(i, i + n).join(" ")
+  );
 }
 
 const calculateSentiment = (reviews) => {
   let totalSentiment = 0;
-  let sentimentByRating = {};
-  let wordFrequency = {};
-  let wordSentimentScores = {};
-  let phraseSentiment = {};
-  let phraseFrequency = {};
-
-  // Sentiment Buckets
   const sentimentBuckets = {
     stronglyPositive: 0,
     mildlyPositive: 0,
@@ -29,22 +20,24 @@ const calculateSentiment = (reviews) => {
     mildlyNegative: 0,
     stronglyNegative: 0,
   };
+  const sentimentByRating = {};
+  const wordFrequency = {};
+  const wordSentimentScores = {};
+  const phraseSentiment = {};
+  const phraseFrequency = {};
 
-  // Theme-based sentiment
   const themes = {
     price: ["price", "expensive", "cheap", "cost", "pricing"],
     service: ["support", "customer", "service", "staff", "help"],
     delivery: ["delivery", "shipping", "arrived", "late", "on time"],
   };
 
-  const themeSentiment = {};
-  Object.keys(themes).forEach((theme) => {
-    themeSentiment[theme] = { total: 0, count: 0 };
-  });
+  const themeSentiment = Object.keys(themes).reduce((acc, theme) => {
+    acc[theme] = { total: 0, count: 0 };
+    return acc;
+  }, {});
 
-  reviews.forEach((review) => {
-    let { text, rating } = review;
-
+  reviews.forEach(({ text, rating }) => {
     if (rating < 1 || rating > 5) {
       console.warn(`Skipping invalid rating: ${rating}`);
       return;
@@ -52,40 +45,40 @@ const calculateSentiment = (reviews) => {
 
     const cleaned = cleanText(text);
     const analysis = sentiment.analyze(cleaned);
-    totalSentiment += analysis.score;
+    const { score, words } = analysis;
+    totalSentiment += score;
 
-    // Buckets
-    if (analysis.score > 3) sentimentBuckets.stronglyPositive++;
-    else if (analysis.score > 1) sentimentBuckets.mildlyPositive++;
-    else if (analysis.score >= -1) sentimentBuckets.neutral++;
-    else if (analysis.score > -3) sentimentBuckets.mildlyNegative++;
+    // Sentiment Buckets
+    if (score > 3) sentimentBuckets.stronglyPositive++;
+    else if (score > 1) sentimentBuckets.mildlyPositive++;
+    else if (score >= -1) sentimentBuckets.neutral++;
+    else if (score > -3) sentimentBuckets.mildlyNegative++;
     else sentimentBuckets.stronglyNegative++;
 
-    // Theme scoring
+    // Theme-based sentiment
     const lowerText = cleaned.toLowerCase();
     Object.entries(themes).forEach(([theme, keywords]) => {
-      const matched = keywords.some((k) => lowerText.includes(k));
-      if (matched) {
-        themeSentiment[theme].total += analysis.score;
+      if (keywords.some((k) => lowerText.includes(k))) {
+        themeSentiment[theme].total += score;
         themeSentiment[theme].count++;
       }
     });
 
-    if (!sentimentByRating[rating]) {
+    // Sentiment by rating
+    if (!sentimentByRating[rating])
       sentimentByRating[rating] = { totalScore: 0, count: 0 };
-    }
-    sentimentByRating[rating].totalScore += analysis.score;
+    sentimentByRating[rating].totalScore += score;
     sentimentByRating[rating].count++;
 
-    analysis.words.forEach((word) => {
+    // Word and Phrase Frequency Analysis
+    words.forEach((word) => {
       wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-      wordSentimentScores[word] =
-        (wordSentimentScores[word] || 0) + analysis.score;
+      wordSentimentScores[word] = (wordSentimentScores[word] || 0) + score;
     });
 
-    const words = tokenizer.tokenize(cleaned);
-    const bigrams = getNGrams(words, 2);
-    const trigrams = getNGrams(words, 3);
+    const tokens = tokenizer.tokenize(cleaned);
+    const bigrams = getNGrams(tokens, 2);
+    const trigrams = getNGrams(tokens, 3);
     const phrases = [...bigrams, ...trigrams];
 
     phrases.forEach((phrase) => {
@@ -95,27 +88,26 @@ const calculateSentiment = (reviews) => {
     });
   });
 
-  const sentimentTrends = {};
-  for (let rating in sentimentByRating) {
-    sentimentTrends[rating] =
-      sentimentByRating[rating].totalScore / sentimentByRating[rating].count;
-  }
+  const sentimentTrends = Object.keys(sentimentByRating).reduce(
+    (acc, rating) => {
+      const { totalScore, count } = sentimentByRating[rating];
+      acc[rating] = totalScore / count;
+      return acc;
+    },
+    {}
+  );
 
-  const sortedWords = Object.keys(wordSentimentScores)
-    .map((word) => ({
+  const sortedWords = Object.entries(wordSentimentScores)
+    .map(([word, score]) => ({
       word,
-      score: wordFrequency[word]
-        ? wordSentimentScores[word] / wordFrequency[word]
-        : 0,
+      score: wordFrequency[word] ? score / wordFrequency[word] : 0,
     }))
     .sort((a, b) => b.score - a.score);
 
-  const sortedPhrases = Object.keys(phraseSentiment)
-    .map((phrase) => ({
+  const sortedPhrases = Object.entries(phraseSentiment)
+    .map(([phrase, score]) => ({
       phrase,
-      score: phraseFrequency[phrase]
-        ? phraseSentiment[phrase] / phraseFrequency[phrase]
-        : 0,
+      score: phraseFrequency[phrase] ? score / phraseFrequency[phrase] : 0,
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -131,8 +123,8 @@ const calculateSentiment = (reviews) => {
 
   // Finalize average for themes
   Object.keys(themeSentiment).forEach((theme) => {
-    const data = themeSentiment[theme];
-    data.average = data.count > 0 ? data.total / data.count : 0;
+    const { total, count } = themeSentiment[theme];
+    themeSentiment[theme].average = count > 0 ? total / count : 0;
   });
 
   return {
