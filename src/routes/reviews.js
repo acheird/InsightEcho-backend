@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 
-// Import controller functions for handling review related logic
+// Import controller functions for handling review logic
 const { addReview, getAnalysis } = require("../controllers/reviewController");
 
 // Define a POST route to add a new review
